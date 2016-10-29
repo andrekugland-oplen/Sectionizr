@@ -1,111 +1,74 @@
-# Copyright (c) 2015 André von Kugland
+import sublime, sublime_plugin, re
 
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-
-"""
-Creates sections in multiple languages.
-
-Like this:
-
-// ----------------------------- //
-//       This is a section       //
-// ----------------------------- //
-"""
-
-
-import re
-import sublime
-import sublime_plugin
-
+from collections import OrderedDict
 
 class SectionizrCommand(sublime_plugin.TextCommand):
+  def str_width(str):
+    width = 0
+    for char in str:
+      code = ord(char)
+      if (0xFF21 <= code <= 0xFF3A) or (0xFF41 <= code <= 0xFF5A):
+        width = width + 1
+      width = width + 1
+    return width
 
-    """Creates sections in multiple languages."""
+  def window_ruler(self, index):
+    return sorted(sublime.active_window().active_view().settings().get('rulers'))[index]
 
-    def window_ruler(self, index):
-        """Get rulers."""
-        rulers = sublime.active_window().active_view().settings().get('rulers')
-        return sorted(rulers)[index]
+  def tab_size(self):
+    return sublime.active_window().active_view().settings().get('tab_size')
 
-    def tab_size(self):
-        """Get tab size."""
-        return sublime.active_window().active_view().settings().get('tab_size')
+  def comment_format(self, region):
+    syntax_names = self.view.scope_name(region.a).split()
+    fmt = OrderedDict([
+      ('source.python',                  ('# ',    ' #'  )),
+      ('source.ruby',                    ('# ',    ' #'  )),
+      ('source.js',                      ('// ',   ' //' )),
+      ('source.js.jquery',               ('// ',   ' //' )),
+      ('source.json',                    ('// ',   ' //' )),
+      ('source.java',                    ('// ',   ' //' )),
+      ('source.c++',                     ('// ',   ' //' )),
+      ('source.c++.11',                  ('// ',   ' //' )),
+      ('source.cs',                      ('// ',   ' //' )),
+      ('source.objc++',                  ('// ',   ' //' )),
+      ('source.objc',                    ('// ',   ' //' )),
+      ('source.c',                       ('/* ',   ' */' )),
+      ('source.css',                     ('/* ',   ' */' )),
+      ('source.php.embedded.block.html', ('// ',   ' //' )),
+      ('text.html.basic',                ('<!-- ', ' -->')),
+      ('text.xml',                       ('<!-- ', ' -->')),
+      ('text.xml.xsl',                   ('<!-- ', ' -->')),
+      ('source.shell',                   ('# ',    ' #'  )),
+      ('source.perl',                    ('# ',    ' #'  )),
+      ('source.sql',                     ('-- ',   ' --' ))
+    ])
+    for k in fmt.keys():
+      if k in syntax_names:
+        return fmt[k]
 
-    def comment_format(self, region):
-        """Select comment format according to scope."""
-        syntax_names = self.view.scope_name(region.a).split()
-        syntaxes = {
-            'source.c':                       ('/* ',   ' */',  '-'),
-            'source.c++':                     ('// ',   ' //',  '-'),
-            'source.c++.11':                  ('// ',   ' //',  '-'),
-            'source.camlp4.ocaml':            ('(* ',   ' *)',  '-'),
-            'source.cs':                      ('// ',   ' //',  '-'),
-            'source.css':                     ('/* ',   ' */',  '-'),
-            'source.erlang':                  ('% ',    ' %',   '-'),
-            'source.go':                      ('// ',   ' //',  '-'),
-            'source.java':                    ('// ',   ' //',  '-'),
-            'source.js':                      ('// ',   ' //',  '-'),
-            'source.js.jquery':               ('// ',   ' //',  '-'),
-            'source.lilypond':                ('% ',    ' %',   '-'),
-            'source.objc':                    ('// ',   ' //',  '-'),
-            'source.objc++':                  ('// ',   ' //',  '-'),
-            'source.ocaml':                   ('(* ',   ' *)',  '-'),
-            'source.ocamllex':                ('(* ',   ' *)',  '-'),
-            'source.ocamlyacc':               ('(* ',   ' *)',  '-'),
-            'source.perl':                    ('# ',    ' #',   '-'),
-            'source.php.embedded.block.html': ('// ',   ' //',  '-'),
-            'source.python':                  ('# ',    ' #',   '-'),
-            'source.ruby':                    ('# ',    ' #',   '-'),
-            'source.scala':                   ('// ',   ' //',  '-'),
-            'source.shell':                   ('# ',    ' #',   '-'),
-            'source.sql':                     ('-- ',   ' --',  '-'),
-            'source.yaml':                    ('# ',    ' #',   '-'),
-            'text.html.basic':                ('<!-- ', ' -->', '–'),
-            'text.tex':                       ('% ',    ' %',   '-'),
-            'text.tex.latex':                 ('% ',    ' %',   '-'),
-            'text.tex.latex.beamer':          ('% ',    ' %',   '-'),
-            'text.tex.latex.memoir':          ('% ',    ' %',   '-'),
-            'text.xml':                       ('<!-- ', ' -->', '–'),
-            'text.xml.xsl':                   ('<!-- ', ' -->', '–')
-        }
+    raise NotImplementedError('Unsupported syntax: ' + str(syntax_names))
 
-        for key in syntaxes.keys():
-            if key in syntax_names:
-                return syntaxes[key]
+  def run(self, edit, level):
+    for region in self.view.sel():
+      line = self.view.line(region)
+      str = self.view.substr(line)
+      (space, contents) = re.search('^(\s*)(.*)', str).groups()
+      (prefix, suffix) = self.comment_format(line)
+      ruler = self.window_ruler(0)
+      center_width = ruler - len(prefix) - len(suffix) \
+                   - len(space.expandtabs(self.tab_size())) - 1
 
-        raise RuntimeError('Unsupported syntax: ' + str(syntax_names))
+      if level == 0:
+        title        = contents.upper()
+        comment_line = prefix + title.center(center_width, ' ') + suffix
+        hr_line      = prefix + '*' * center_width + suffix
+        res          = space + hr_line + "\n" \
+                     + space + comment_line + "\n" \
+                     + space + hr_line
+      elif level >= 1:
+        title        = '[ {0} ]'.format(contents)
+        comment_line = prefix + title.center(center_width, '*') + suffix
+        hr_line      = prefix + '*' * center_width + suffix
+        res          = space + comment_line
 
-    def run(self, edit):
-        """Apply Sectionizr to each selected line."""
-        for region in self.view.sel():
-            line = self.view.line(region)
-            str = self.view.substr(line)
-            (space, contents) = re.search('^(\s*)(.*)', str).groups()
-            title_format = u'{0}'
-            title = title_format.format(contents)
-            (prefix, suffix, ln) = self.comment_format(line)
-            ruler = self.window_ruler(0)
-            center_width = ruler - len(prefix) - len(suffix) \
-                - len(space.expandtabs(self.tab_size())) - 1
-            full_line = prefix + ''.center(center_width, ln) + suffix
-            comment_line = prefix + title.center(center_width, ' ') + suffix
-            self.view.replace(edit, line, "\n" + space + full_line +
-                              "\n" + space + comment_line + "\n" + space +
-                              full_line + "\n")
+      self.view.replace(edit, line, "\n" + res + "\n")
