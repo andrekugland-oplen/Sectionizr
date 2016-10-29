@@ -21,6 +21,12 @@ class SectionizrCommand(sublime_plugin.TextCommand):
   def comment_format(self, region):
     syntax_names = self.view.scope_name(region.a).split()
     fmt = OrderedDict([
+      ('source.lilypond',                ('% ',    ' %'  )),
+      ('text.tex.latex',                 ('% ',    ' %'  )),
+      ('text.tex.latex.beamer',          ('% ',    ' %'  )),
+      ('text.tex.latex.memoir',          ('% ',    ' %'  )),
+      ('text.html.markdown',             ('<!-- ', ' -->')),
+      ('source.makefile',                ('# ',    ' #'  )),
       ('source.python',                  ('# ',    ' #'  )),
       ('source.ruby',                    ('# ',    ' #'  )),
       ('source.js',                      ('// ',   ' //' )),
