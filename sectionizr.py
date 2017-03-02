@@ -46,7 +46,8 @@ class SectionizrCommand(sublime_plugin.TextCommand):
       ('text.xml.xsl',                   ('<!-- ', ' -->')),
       ('source.shell',                   ('# ',    ' #'  )),
       ('source.perl',                    ('# ',    ' #'  )),
-      ('source.sql',                     ('-- ',   ' --' ))
+      ('source.sql',                     ('-- ',   ' --' )),
+      ('source.sass',                    ('// ',   ' //' ))
     ])
     for k in fmt.keys():
       if k in syntax_names:
