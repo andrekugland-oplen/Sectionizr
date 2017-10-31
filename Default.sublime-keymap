@@ -1,3 +1,10 @@
 [
-	{"keys": ["ctrl+k", "c"], "command": "sectionizr"}
+	{"keys": ["ctrl+k", "c", "0"], "command": "sectionizr", "args": {
+                        "level": 0
+                }
+        },
+        {"keys": ["ctrl+k", "c", "1"], "command": "sectionizr", "args": {
+                        "level": 1
+                }
+        }
 ]
