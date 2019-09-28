@@ -21,33 +21,34 @@ class SectionizrCommand(sublime_plugin.TextCommand):
   def comment_format(self, region):
     syntax_names = self.view.scope_name(region.a).split()
     fmt = OrderedDict([
-      ('source.lilypond',                ('% ',    ' %'  )),
-      ('text.tex.latex',                 ('% ',    ' %'  )),
-      ('text.tex.latex.beamer',          ('% ',    ' %'  )),
-      ('text.tex.latex.memoir',          ('% ',    ' %'  )),
-      ('text.html.markdown',             ('<!-- ', ' -->')),
-      ('source.makefile',                ('# ',    ' #'  )),
-      ('source.python',                  ('# ',    ' #'  )),
-      ('source.ruby',                    ('# ',    ' #'  )),
-      ('source.js',                      ('// ',   ' //' )),
-      ('source.js.jquery',               ('// ',   ' //' )),
-      ('source.json',                    ('// ',   ' //' )),
-      ('source.java',                    ('// ',   ' //' )),
-      ('source.c++',                     ('// ',   ' //' )),
-      ('source.c++.11',                  ('// ',   ' //' )),
-      ('source.cs',                      ('// ',   ' //' )),
-      ('source.objc++',                  ('// ',   ' //' )),
-      ('source.objc',                    ('// ',   ' //' )),
-      ('source.c',                       ('/* ',   ' */' )),
-      ('source.css',                     ('/* ',   ' */' )),
-      ('source.php.embedded.block.html', ('// ',   ' //' )),
-      ('text.html.basic',                ('<!-- ', ' -->')),
-      ('text.xml',                       ('<!-- ', ' -->')),
-      ('text.xml.xsl',                   ('<!-- ', ' -->')),
-      ('source.shell',                   ('# ',    ' #'  )),
-      ('source.perl',                    ('# ',    ' #'  )),
-      ('source.sql',                     ('-- ',   ' --' )),
-      ('source.sass',                    ('// ',   ' //' ))
+      # Context                           Prefix    Fill   Suffix
+      ('source.lilypond',                 ('%',     '%',    '%'   )),
+      ('text.tex.latex',                  ('%',     '%',    '%'   )),
+      ('text.tex.latex.beamer',           ('%',     '%',    '%'   )),
+      ('text.tex.latex.memoir',           ('%',     '%',    '%'   )),
+      ('text.html.markdown',              ('<!--',  '-',    '-->' )),
+      ('text.html.basic',                 ('<!--',  '-',    '-->' )),
+      ('text.xml',                        ('<!--',  '-',    '-->' )),
+      ('text.xml.xsl',                    ('<!--',  '-',    '-->' )),
+      ('source.makefile',                 ('#',     '#',    '#'   )),
+      ('source.python',                   ('#',     '#',    '#'   )),
+      ('source.ruby',                     ('#',     '#',    '#'   )),
+      ('source.shell',                    ('#',     '#',    '#'   )),
+      ('source.perl',                     ('#',     '#',    '#'   )),
+      ('source.js',                       ('//',    '/',    '//'  )),
+      ('source.js.jquery',                ('//',    '/',    '//'  )),
+      ('source.json',                     ('//',    '/',    '//'  )),
+      ('source.java',                     ('//',    '/',    '//'  )),
+      ('source.c++',                      ('//',    '/',    '//'  )),
+      ('source.c++.11',                   ('//',    '/',    '//'  )),
+      ('source.cs',                       ('//',    '/',    '//'  )),
+      ('source.objc++',                   ('//',    '/',    '//'  )),
+      ('source.objc',                     ('//',    '/',    '//'  )),
+      ('source.php.embedded.block.html',  ('//',    '/',    '//'  )),
+      ('source.sass',                     ('//',    '/',    '//'  )),
+      ('source.c',                        ('/*',    '*',    '*/'  )),
+      ('source.css',                      ('/*',    '*',    '*/'  )),
+      ('source.sql',                      ('--',    '-',    '--'  ))
     ])
     for k in fmt.keys():
       if k in syntax_names:
@@ -60,7 +61,7 @@ class SectionizrCommand(sublime_plugin.TextCommand):
       line = self.view.line(region)
       str = self.view.substr(line)
       (space, contents) = re.search('^(\s*)(.*)', str).groups()
-      (prefix, suffix) = self.comment_format(line)
+      (prefix, fill, suffix) = self.comment_format(line)
       ruler = self.window_ruler(0)
       center_width = ruler - len(prefix) - len(suffix) \
                    - len(space.expandtabs(self.tab_size())) - 1
@@ -68,14 +69,14 @@ class SectionizrCommand(sublime_plugin.TextCommand):
       if level == 0:
         title        = contents.upper()
         comment_line = prefix + title.center(center_width, ' ') + suffix
-        hr_line      = prefix + '*' * center_width + suffix
+        hr_line      = prefix + fill * center_width + suffix
         res          = space + hr_line + "\n" \
                      + space + comment_line + "\n" \
                      + space + hr_line
       elif level >= 1:
         title        = '[ {0} ]'.format(contents)
-        comment_line = prefix + title.center(center_width, '*') + suffix
-        hr_line      = prefix + '*' * center_width + suffix
+        comment_line = prefix + title.center(center_width, fill) + suffix
+        hr_line      = prefix + fill * center_width + suffix
         res          = space + comment_line
 
       self.view.replace(edit, line, "\n" + res + "\n")
