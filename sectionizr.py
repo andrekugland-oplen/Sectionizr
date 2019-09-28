@@ -74,7 +74,7 @@ class SectionizrCommand(sublime_plugin.TextCommand):
                      + space + comment_line + "\n" \
                      + space + hr_line
       elif level >= 1:
-        title        = '[ {0} ]'.format(contents)
+        title        = ' {0} '.format(contents)
         comment_line = prefix + title.center(center_width, fill) + suffix
         hr_line      = prefix + fill * center_width + suffix
         res          = space + comment_line
